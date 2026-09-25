@@ -1,4 +1,7 @@
 // ============ BATTLE: Lógica de combate corregida y con afinidad elemental ============
+// Nota: playMoveFX() recibe mv.anim / em.anim (definido en data.js) como
+// último argumento, para que fx.js sepa qué animación personalizada
+// dibujar (ver ANIM_CONFIG en fx.js).
 
 let sel=0,state='main',sparkles=[];
 let enemyIdx=0;
@@ -202,7 +205,7 @@ function switchPartner(targetIdx){
       
       resolving = false;
       updateUI();
-    }, em.col);
+    }, em.col, em.anim);
   }, 600);
 }
 
@@ -391,7 +394,7 @@ function startTurn(moveIdx){
       }
 
       setTimeout(step,mv.kind==='ATK'?980:820);
-    },mv.col);
+    },mv.col,mv.anim);
   }
 
   step();
