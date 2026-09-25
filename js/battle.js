@@ -1,4 +1,4 @@
-// ============ BATTLE: Lógica de combate corregida ============
+// ============ BATTLE: Lógica de combate corregida y con afinidad elemental ============
 
 let sel=0,state='main',sparkles=[];
 let enemyIdx=0;
@@ -12,7 +12,6 @@ let pStatus={shield:0,parry:false,cover:0,buffAtk:1.0,buffCrit:false,stunned:fal
 let eStatus={shield:0,parry:false,cover:0,buffAtk:1.0,buffCrit:false,stunned:false};
 
 function resetPartyState(){
-  // Corrección: Carga el MP al máximo real de cada personaje
   partyState = chars.map(c => ({ hp: c.stats.hp, mp: c.stats.maxMp }));
 }
 
@@ -115,7 +114,7 @@ function nextFight(){
   enemyIdx++;
   partyState.forEach((st, i) => {
     st.hp = Math.min(chars[i].stats.hp, st.hp + Math.round(chars[i].stats.hp * 0.35));
-    st.mp = chars[i].stats.maxMp; // Recarga completa al ganar ronda
+    st.mp = chars[i].stats.maxMp;
   });
   playerHP = partyState[sel].hp;
   playerMP = partyState[sel].mp;
@@ -143,7 +142,6 @@ function restartAll(){
   state='main';updateUI();
 }
 
-// Intercambio sin doble golpe
 function switchPartner(targetIdx){
   if(resolving || targetIdx === sel || partyState[targetIdx].hp <= 0) return;
   
@@ -198,7 +196,6 @@ function switchPartner(targetIdx){
           state = 'battle_switch';
         }
       } else {
-        // Otorgar regeneración de MP al entrar
         playerMP = Math.min(chars[sel].stats.maxMp, playerMP + 10);
         syncPartyState();
       }
@@ -209,7 +206,7 @@ function switchPartner(targetIdx){
   }, 600);
 }
 
-function applyDamage(isPlayerAttacking,mv,atkr,defr){
+function applyDamage(isPlayerAttacking, mv, atkr, defr){
   const attackerStatus = isPlayerAttacking ? pStatus : eStatus;
   const defenderStatus = isPlayerAttacking ? eStatus : pStatus;
   const targetPos = isPlayerAttacking ? {x:213,y:80} : {x:65,y:140};
@@ -234,7 +231,15 @@ function applyDamage(isPlayerAttacking,mv,atkr,defr){
     return;
   }
 
-  let rawDmg = (atkr.stats.atk * mv.pow) - (defr.stats.def * 0.25);
+  // --- MODIFICADOR DE AFINIDAD ELEMENTAL ---
+  let elementalMultiplier = 1.0;
+  if (mv.element && defr.weakness === mv.element) {
+    elementalMultiplier = 1.5;
+  } else if (mv.element && defr.resistance === mv.element) {
+    elementalMultiplier = 0.5;
+  }
+
+  let rawDmg = ((atkr.stats.atk * mv.pow) - (defr.stats.def * 0.25)) * elementalMultiplier;
   if(isPlayerAttacking) rawDmg *= pBonusAtk;
   rawDmg *= attackerStatus.buffAtk;
   attackerStatus.buffAtk = 1.0;
@@ -267,8 +272,17 @@ function applyDamage(isPlayerAttacking,mv,atkr,defr){
     if(isCrit) { triggerFlash('#fff2a0'); playSFX('crit'); }
     else { playSFX('hit'); }
 
+    if (elementalMultiplier > 1.0) {
+      spawnFloatText(targetPos.x, targetPos.y - 24, '¡SUPER EFECTIVO!', '#ffd25e', 1.1);
+    } else if (elementalMultiplier < 1.0) {
+      spawnFloatText(targetPos.x, targetPos.y - 24, 'POCO EFECTIVO', '#808080', 1.0);
+    }
+
     spawnFloatText(targetPos.x,targetPos.y-12,isCrit?`¡CRÍTICO! -${finalDmg}`:`-${finalDmg}`,isCrit?'#ffd25e':'#ff4d4d',isCrit?1.25:1);
-    msg=atkr.name+' usó '+mv.name+'! '+(isCrit?'¡Golpe Crítico! ':'')+'-'+finalDmg+' HP';
+    msg = atkr.name + ' usó ' + mv.name + '! ' + 
+          (elementalMultiplier > 1.0 ? '¡Super efectivo! ' : '') + 
+          (elementalMultiplier < 1.0 ? 'Poco efectivo. ' : '') + 
+          (isCrit ? '¡Golpe Crítico! ' : '') + '-' + finalDmg + ' HP';
   }
 }
 
@@ -285,7 +299,6 @@ function startTurn(moveIdx){
 
   resolving=true;
   
-  // Regeneración pasiva de MP por turno para evitar bloqueos
   playerMP = Math.min(p.stats.maxMp, Math.max(0, playerMP - pm.cost + 8));
   enemyMP = Math.min(e.stats.maxMp, enemyMP + 5);
   syncPartyState();
@@ -294,7 +307,6 @@ function startTurn(moveIdx){
   const em = validEMoves.length > 0 ? validEMoves[Math.floor(Math.random()*validEMoves.length)] : e.moves[0];
   enemyMP = Math.min(e.stats.maxMp, Math.max(0, enemyMP - em.cost));
 
-  // Orden de turno según velocidad
   const order = p.stats.vel >= e.stats.vel ? [['p',pm],['e',em]] : [['e',em],['p',pm]];
   let stepIdx=0;
 
