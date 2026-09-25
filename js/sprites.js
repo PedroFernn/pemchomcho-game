@@ -1,7 +1,10 @@
-// ============ SPRITES: Arte pixel de compañeros y enemigos ============
+// ============ SPRITES: Arte pixel de compañeros, enemigos y proyectiles ============
 // Funciones de dibujo: knight, girl, dog (compañeros) y cat, frog, crow,
-// vampChicken, wolfDJ, afroDog (enemigos). Usa R/B/ball/K/t de core.js.
-// Para cambiar el diseño de un personaje, edita su función aquí.
+// vampChicken, wolfDJ, afroDog (enemigos). Más abajo: drawBeerBottle, drawCoin,
+// drawBone, drawHairball, drawWaterDrop, drawClawMarks, drawFeather, drawFang,
+// drawFoodItem — objetos/proyectiles de ataque referenciados por ANIM_CONFIG
+// en fx.js. Usa R/B/ball/K/t de core.js. Para cambiar el diseño de un
+// personaje o proyectil, edita su función aquí.
 
 // ---------- COMPAÑEROS DE EQUIPO ----------
 function knight(x,fy,p){
@@ -173,6 +176,90 @@ function wolfDJ(x,fy){
     g.strokeStyle=neonCol;g.lineWidth=1;
     g.strokeRect(cx-16,cy-14,32,24);
   }
+}
+
+// ---------- OBJETOS Y PROYECTILES DE ATAQUE (usados por fx.js/ANIM_CONFIG) ----------
+// Todos reciben coordenadas de CENTRO y son pequeños (8-16px) para mantener
+// el estilo pixel-art del resto del juego. Usan solo R/B/ball de core.js,
+// más g.save/translate/rotate para los que giran en vuelo.
+
+function drawBeerBottle(x,y,rot){
+  g.save();
+  g.translate(Math.round(x),Math.round(y));
+  g.rotate(rot||0);
+  R(-2,-9,4,3,'#e8c690');
+  R(-1,-11,2,3,'#8a5a1e');
+  R(-3,-6,6,11,'#3a6b1e');
+  R(-2,-4,4,2,'#f0e8c8');
+  R(-3,2,6,3,'#2a4d15');
+  g.restore();
+}
+
+function drawCoin(x,y,col,rot){
+  const sq = Math.max(1,Math.abs(Math.cos(rot||0)));
+  ball(x,y,6,K);
+  ball(x,y,Math.max(1,Math.round(5*sq)),col||'#ffd25e');
+  if(sq>0.5){
+    g.fillStyle=K;g.font="bold 6px 'Courier New',monospace";g.textAlign='center';
+    g.fillText(col==='#ffd25e'?'$':'☠',Math.round(x),Math.round(y)+2);
+    g.textAlign='left';
+  }
+}
+
+function drawBone(x,y,rot){
+  g.save();
+  g.translate(Math.round(x),Math.round(y));
+  g.rotate(rot||0);
+  R(-6,-1,12,2,'#f0ead6');
+  ball(-6,-2,2,'#f0ead6');ball(-6,2,2,'#f0ead6');
+  ball(6,-2,2,'#f0ead6');ball(6,2,2,'#f0ead6');
+  g.restore();
+}
+
+function drawHairball(x,y){
+  ball(x,y,5,'#5a1a10');ball(x,y,4,'#8a2a1a');
+  R(x-3,y-2,2,1,'#c85a3a');R(x+1,y+1,2,1,'#c85a3a');R(x-1,y-3,1,1,'#c85a3a');
+}
+
+function drawWaterDrop(x,y,col){
+  const c=col||'#5a7a3a';
+  ball(x,y+1,4,c);
+  R(x-1,y-6,2,6,c);
+  R(x-2,y,1,1,'#dff0c8');
+}
+
+function drawClawMarks(x,y){
+  g.strokeStyle='#ffffff';g.lineWidth=2;
+  for(let i=0;i<3;i++){
+    g.beginPath();
+    g.moveTo(x-9+i*6,y-9);
+    g.lineTo(x-3+i*6,y+9);
+    g.stroke();
+  }
+}
+
+function drawFeather(x,y,rot){
+  g.save();
+  g.translate(Math.round(x),Math.round(y));
+  g.rotate(rot||0);
+  R(-1,-7,2,12,'#e8ecf2');
+  R(-4,-5,3,2,'#a0a8b8');R(1,-3,3,2,'#a0a8b8');
+  R(-4,-1,3,2,'#a0a8b8');R(1,1,3,2,'#a0a8b8');
+  R(-4,3,3,2,'#a0a8b8');
+  g.restore();
+}
+
+function drawFang(x,y,col){
+  const c=col||'#601020';
+  R(x-3,y-5,2,9,c);
+  R(x+1,y-5,2,9,c);
+  R(x-4,y-6,8,2,c);
+}
+
+function drawFoodItem(x,y,col){
+  ball(x,y+3,6,'#8a5a1e');
+  ball(x,y+1,5,col||'#c8402b');
+  if(Math.sin(t*8)>0){R(x-1,y-7,2,3,'#d8d8d8');R(x+2,y-8,1,3,'#d8d8d8');}
 }
 
 function afroDog(x,fy){
