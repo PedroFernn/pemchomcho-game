@@ -14,6 +14,12 @@ let partyState = [];
 let pStatus={shield:0,parry:false,cover:0,buffAtk:1.0,buffCrit:false,stunned:false};
 let eStatus={shield:0,parry:false,cover:0,buffAtk:1.0,buffCrit:false,stunned:false};
 
+// Estado de animación de sprite (idle/hit/victory/defeat) por bando, con
+// temporizador para volver a 'idle' tras el parpadeo de golpe recibido.
+let pAnimState='idle', eAnimState='idle';
+let pAnimTimer=0, eAnimTimer=0;
+let resultBurstDone=false;
+
 function resetPartyState(){
   partyState = chars.map(c => ({ hp: c.stats.hp, mp: c.stats.maxMp }));
 }
@@ -77,8 +83,23 @@ function drawBattleScene(dt){
   const pShake=playerHit>0?Math.round((Math.random()-.5)*6):0;
   const eShake=enemyHit>0?Math.round((Math.random()-.5)*6):0;
 
-  e.draw(200+eShake,104);
-  if(p.draw.length===3)p.draw(50+pShake,166,t*2);else p.draw(50+pShake,166);
+  // Temporizador del parpadeo de golpe ('hit'): vuelve a 'idle' al terminar
+  if(pAnimTimer>0){ pAnimTimer=Math.max(0,pAnimTimer-dt); if(pAnimTimer<=0) pAnimState='idle'; }
+  if(eAnimTimer>0){ eAnimTimer=Math.max(0,eAnimTimer-dt); if(eAnimTimer<=0) eAnimState='idle'; }
+
+  // Resultado del combate: fuerza pose de victoria/derrota en cada bando
+  if(state==='victory' || state==='champion'){
+    pAnimState='victory'; eAnimState='defeat';
+    if(!resultBurstDone){resultBurstDone=true;burstAt(65,140,'#ffd25e',14,50);}
+  } else if(state==='defeat'){
+    pAnimState='defeat'; eAnimState='victory';
+    if(!resultBurstDone){resultBurstDone=true;burstAt(213,80,'#5b4a78',14,50);}
+  } else if(state==='battle_switch'){
+    pAnimState='defeat';
+  }
+
+  e.draw(200+eShake,104,eAnimState);
+  p.draw(50+pShake,166,pAnimState);
 
   if(pStatus.parry) { ball(63,140,16,'#ffd25e33'); }
   if(pStatus.shield>0) { ball(63,140,18,'#5b4a7844'); }
@@ -100,6 +121,9 @@ function drawBattleScene(dt){
 function resetCombatStates(){
   pStatus={shield:pStartShield,parry:false,cover:0,buffAtk:1.0,buffCrit:false,stunned:false};
   eStatus={shield:0,parry:false,cover:0,buffAtk:1.0,buffCrit:false,stunned:false};
+  pAnimState='idle'; eAnimState='idle';
+  pAnimTimer=0; eAnimTimer=0;
+  resultBurstDone=false;
 }
 
 function startBattle(){
@@ -154,6 +178,7 @@ function switchPartner(targetIdx){
   playerMP = partyState[sel].mp;
   
   pStatus = {shield: pStartShield, parry: false, cover: 0, buffAtk: 1.0, buffCrit: false, stunned: false};
+  pAnimState = 'idle'; pAnimTimer = 0;
 
   msg = `¡Entra ${chars[sel].name}!`;
   spawnFloatText(65, 140, '¡CAMBIO!', '#30a0ff', 1.2);
@@ -266,8 +291,8 @@ function applyDamage(isPlayerAttacking, mv, atkr, defr){
   }
 
   if(finalDmg > 0){
-    if(isPlayerAttacking){ enemyHP=Math.max(0,enemyHP-finalDmg); enemyHit=14; }
-    else { playerHP=Math.max(0,playerHP-finalDmg); playerHit=14; }
+    if(isPlayerAttacking){ enemyHP=Math.max(0,enemyHP-finalDmg); enemyHit=14; eAnimState='hit'; eAnimTimer=0.35; }
+    else { playerHP=Math.max(0,playerHP-finalDmg); playerHit=14; pAnimState='hit'; pAnimTimer=0.35; }
 
     syncPartyState();
 
