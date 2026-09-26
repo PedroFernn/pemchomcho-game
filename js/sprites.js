@@ -6,6 +6,52 @@
 // en fx.js. Usa R/B/ball/K/t de core.js. Para cambiar el diseño de un
 // personaje o proyectil, edita su función aquí.
 
+// ---------- WRAPPER GENÉRICO DE ESTADO DE COMBATE (hit/victory/defeat) ----------
+// Envuelve cualquier función de dibujo (knight, girl, dog, cat, frog...) para
+// aplicarle una reacción visual según el estado de combate, sin tocar el
+// arte pixel de cada personaje. Se usa desde data.js en cada draw:.
+// state: 'idle' (default) | 'hit' | 'victory' | 'defeat'
+function drawWithState(drawFn,x,fy,state,extra){
+  state = state || 'idle';
+
+  if(state === 'defeat'){
+    // Cae de espaldas: rota 90° apoyado en el piso y se atenúa
+    g.save();
+    g.globalAlpha = 0.6;
+    g.translate(x+10,fy);
+    g.rotate(Math.PI/2);
+    g.translate(-(x+10),-(fy-8));
+    drawFn(x,fy,extra);
+    g.restore();
+    return;
+  }
+
+  if(state === 'victory'){
+    // Salto de victoria repetitivo
+    const hop = Math.abs(Math.sin((typeof t!=='undefined'?t:0)*8))*10;
+    g.save();
+    g.translate(0,-hop);
+    drawFn(x,fy,extra);
+    g.restore();
+    return;
+  }
+
+  if(state === 'hit'){
+    // Retrocede e inclina hacia atrás por el impacto, con parpadeo de opacidad
+    const flick = 0.55 + Math.abs(Math.sin((typeof t!=='undefined'?t:0)*40))*0.45;
+    g.save();
+    g.globalAlpha = flick;
+    g.translate(x,fy);
+    g.rotate(-0.18);
+    g.translate(-(x+7),-(fy));
+    drawFn(x,fy,extra);
+    g.restore();
+    return;
+  }
+
+  drawFn(x,fy,extra);
+}
+
 // ---------- COMPAÑEROS DE EQUIPO ----------
 function knight(x,fy,p){
   p = (p !== undefined) ? p : (typeof t !== 'undefined' ? t * 2 : 0);
